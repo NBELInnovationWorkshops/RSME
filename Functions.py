@@ -206,7 +206,8 @@ def define_light_synpases(simulation_dict, logger):
             synapse_dict[cell_type][cell] = insert_synapses(
                 simulation_dict,
                 simulation_dict['synapses']['light_synapse'],
-                simulation_dict['cells'][cell_type]['instances'][cell]['section_dict'], logger)
+                simulation_dict['cells'][cell_type]['instances'][cell]['section_dict'], logger,
+                syn_loc_seed = 10000 * cell + sum([ord(t) for t in cell_type]))
     
     if simulation_dict['print_mode']:      
         print ('Light synapses were successfully inserted')
@@ -429,7 +430,7 @@ def insert_inner_synapses(synapse_dict, simulation_dict, cell_type, logger):
     return inner_synapses
     
 
-def insert_synapses(params_dict, syn_params_dict, sections_dict, logger):
+def insert_synapses(params_dict, syn_params_dict, sections_dict, logger, syn_loc_seed):
     """ Distribute synapses across the morphology """
     
     section_list = sections_dict['section_list']
@@ -441,7 +442,7 @@ def insert_synapses(params_dict, syn_params_dict, sections_dict, logger):
     
     count    = 0 # counts total number of introduced synapses
     tot_segs = 0 # counts total number of segments in all sections
-    
+    syn_loc_rnd = np.random.RandomState(syn_loc_seed)
     for k, sec in enumerate(section_list):
         
         n3d = int(NEURON.n3d(sec = sec)) - 1
@@ -467,7 +468,7 @@ def insert_synapses(params_dict, syn_params_dict, sections_dict, logger):
             scale_factor = params_dict['scale_factor'] 
             offset = params_dict['offset']             
             transition_placement = params_dict['transition_placement']
-            synape = (np.random.rand() < synapse_sigmoid_distribution_function(dist, scale_factor, 
+            synape = (syn_loc_rnd.rand() < synapse_sigmoid_distribution_function(dist, scale_factor, 
                                                                                offset, transition_placement))
             
             #################################################################################
