@@ -1,6 +1,6 @@
 import math
 import numpy as np
-import Stimuli_visual_pattern 
+import stimuli_visual_pattern 
 import xml.etree.ElementTree as ET
 import libsbml 
 from operator import *
@@ -9,7 +9,7 @@ class SimulationParameters(object):
                             
     def __init__(self, simulation_parameters_xml, 
                  scale_factor, offset, transition_placement, refiling_rate, release_probability, offset_dyn, syn_weight, 
-                 note="", print_mode=False, light_dt = 0.025, sim_dt = 0.025):
+                 note="",note_dir="", print_mode=False, light_dt = 0.025, sim_dt = 0.025):
         if sim_dt!=0.025:
             raise Exception("Not implemented yet")
         if light_dt<sim_dt:
@@ -37,7 +37,7 @@ class SimulationParameters(object):
         
         # Handling XML-specified simulation general parameters (Layer 1 parsing)
         self.simdur, self.description = layer1_parsing (root)
-        self.logger, self.results_dir = initiate_logger(self.description, note)
+        self.logger, self.results_dir = initiate_logger(self.description, note, note_dir=note_dir)
         self.logger.info(f"sim_dt: {sim_dt}  | light_dt: {light_dt}")
         self.logger.info(f"scale_factor: {scale_factor}")
         self.logger.info(f"transition_placement: {transition_placement}")
@@ -204,7 +204,7 @@ def layer2_parsing (element_tree, logger):
     delay           = int(root.find('{VSME.simulation_parameters}delay')         .text)
     x0              = int(root.find('{VSME.simulation_parameters}x0')            .text)
     y0              = int(root.find('{VSME.simulation_parameters}y0')            .text)
-    stimuli_to_call = getattr(Stimuli_visual_pattern, root.get('type'))
+    stimuli_to_call = getattr(stimuli_visual_pattern, root.get('type'))
     
     logger.info("Visual stimulation: {} with parameters:\n tgt_population = {}; field = {} mm; frequancy = {} Hz; blocked_field = {} mm; center = ({},{}); delay = {}".format(root.get('type'), tgt_population, stimuli_field, frequancy, blocked_field, x0, y0, delay))
 
@@ -477,7 +477,7 @@ def parse_mathML_to_annonymous (mathML):
     
     return parsed_equation, result
 
-def initiate_logger(simulation_discription, note):
+def initiate_logger(simulation_discription, note, note_dir=''):
     
     """
     logger.debug('debug message')
@@ -495,21 +495,23 @@ def initiate_logger(simulation_discription, note):
     import random
     rnd_id = str(random.random())[2:]
 
-    # create logger with 'spam_application'
-    logger = logging.getLogger('VSME[{}]'.format(simulation_discription))
-    logger.setLevel(logging.DEBUG)
+
     
     # Creating a folder for log and results
     if (platform.system() == 'Windows'):
-        dir_path = 'Results\\run2\\VSME_{}-{}_{}_{}\\'.format(time.strftime("%H_%M_%S"), 
+        dir_path = 'Results\\{}\\VSME_{}-{}_{}_{}\\'.format(note_dir, time.strftime("%H_%M_%S"), 
                                                      time.strftime("%d_%m_%Y"),
                                                      note, rnd_id)
     else:
-        dir_path = 'Results/VSME_{}-{}_{}_{}/'.format(time.strftime("%H_%M_%S"), 
+        dir_path = 'Results/{}/VSME_{}-{}_{}_{}/'.format(note_dir, time.strftime("%H_%M_%S"), 
                                                    time.strftime("%d_%m_%Y"),
                                                    note, rnd_id)
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
+    
+    # create logger with 'spam_application'
+    logger = logging.getLogger('VSME[{}]{}'.format(simulation_discription,dir_path))
+    logger.setLevel(logging.DEBUG)
     
     # create file handler which logs debug messages
     # fh = logging.FileHandler('log\VSME - {}.log'.format(time.strftime("%c"))) not working over Windows
