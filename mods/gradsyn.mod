@@ -52,6 +52,7 @@ BREAKPOINT {
 	SOLVE state METHOD cnexp
 	:printf(" %g ",vpre)
     if (vpre>-50  && t>last_event){
+        :activate the synapse and calculate the next event
         last_event = invl(interval)+t
         :printf(" %g ",last_event)
         active()
