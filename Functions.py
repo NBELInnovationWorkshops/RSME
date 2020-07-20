@@ -420,7 +420,7 @@ def insert_inner_synapses(synapse_dict, simulation_dict, cell_type, logger):
         syn.tau2 = 10
         syn.interval = 15
         syn.e = 0
-        syn.factor =0# 0.0003
+        syn.factor = 0.0003
 
         simulation_dict['pc'].source_var(src(0.5)._ref_v,    int(cell_type) * 1000 + i, sec = src)
         simulation_dict['pc'].target_var(syn, syn._ref_vpre, int(cell_type) * 1000 + i, sec = tgt)
