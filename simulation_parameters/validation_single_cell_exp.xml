@@ -1,0 +1,12 @@
+
+<simulation_parameters xmlns="VSME">
+
+  <simulation_description> single_cell </simulation_description>
+  <simulation_duration>    1500        </simulation_duration>
+
+  <visual_stimulation> visual_expanding_validation.xml  </visual_stimulation>
+  <network>            network_single.xml               </network>
+  <morphology>         morphology.xml                   </morphology>
+  <biophysics>         biophysics_validation.xml        </biophysics>
+
+</simulation_parameters>
