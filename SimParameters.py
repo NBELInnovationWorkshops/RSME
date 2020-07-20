@@ -39,6 +39,13 @@ class SimulationParameters(object):
         self.simdur, self.description = layer1_parsing (root)
         self.logger, self.results_dir = initiate_logger(self.description, note)
         self.logger.info(f"sim_dt: {sim_dt}  | light_dt: {light_dt}")
+        self.logger.info(f"scale_factor: {scale_factor}")
+        self.logger.info(f"transition_placement: {transition_placement}")
+        self.logger.info(f"refiling_rate: {refiling_rate}")
+        self.logger.info(f"release_probability: {release_probability}")
+        self.logger.info(f"offset_dyn: {offset_dyn}")
+        self.logger.info(f"syn_weight: {syn_weight}")    
+        
         self.logger.info('Layer 1 parsing initiated')
         self.logger.info('Simulation {} has initiated. Simulation duration: {} msec'.format(self.description, self.simdur))
         self.logger.info('Layer 1 parsing concluded')
