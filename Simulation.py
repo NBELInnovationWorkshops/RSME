@@ -8,7 +8,7 @@ import pdb
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 from Functions import *
-from stimuli_visual_pattern import *
+from Stimuli_visual_pattern import *
 from SimParameters import SimulationParameters
 from scipy import spatial
 

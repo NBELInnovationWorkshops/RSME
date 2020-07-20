@@ -15,7 +15,7 @@ import SimParameters
 from neuron import gui
 from neuron import h as NEURON
 from SimParameters import *
-from stimuli_visual_pattern import evaluate_stimuli_pattern
+from Stimuli_visual_pattern import evaluate_stimuli_pattern
 
 
 def load_morphology(NEURON, simulation_dict, logger):

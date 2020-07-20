@@ -1,6 +1,6 @@
 import math
 import numpy as np
-import stimuli_visual_pattern 
+import Stimuli_visual_pattern 
 import xml.etree.ElementTree as ET
 import libsbml 
 from operator import *
@@ -197,7 +197,7 @@ def layer2_parsing (element_tree, logger):
     delay           = int(root.find('{VSME.simulation_parameters}delay')         .text)
     x0              = int(root.find('{VSME.simulation_parameters}x0')            .text)
     y0              = int(root.find('{VSME.simulation_parameters}y0')            .text)
-    stimuli_to_call = getattr(stimuli_visual_pattern, root.get('type'))
+    stimuli_to_call = getattr(Stimuli_visual_pattern, root.get('type'))
     
     logger.info("Visual stimulation: {} with parameters:\n tgt_population = {}; field = {} mm; frequancy = {} Hz; blocked_field = {} mm; center = ({},{}); delay = {}".format(root.get('type'), tgt_population, stimuli_field, frequancy, blocked_field, x0, y0, delay))
 
