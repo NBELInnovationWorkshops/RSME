@@ -40,6 +40,7 @@ class SimulationParameters(object):
         self.logger, self.results_dir = initiate_logger(self.description, note, note_dir=note_dir)
         self.logger.info(f"sim_dt: {sim_dt}  | light_dt: {light_dt}")
         self.logger.info(f"scale_factor: {scale_factor}")
+        self.logger.info(f"offset: {offset}")
         self.logger.info(f"transition_placement: {transition_placement}")
         self.logger.info(f"refiling_rate: {refiling_rate}")
         self.logger.info(f"release_probability: {release_probability}")
