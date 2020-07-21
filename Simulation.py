@@ -190,6 +190,8 @@ class Simulation(object):
         
         # Running simulation
         NEURON.tstop = self.simulation['simdur']
+        self.simulation['pc'].setup_transfer()
+        
         NEURON.run()
         
         end = time.time()
