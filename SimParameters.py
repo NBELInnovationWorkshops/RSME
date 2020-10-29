@@ -6,9 +6,15 @@ import libsbml
 from operator import *
 
 class SimulationParameters(object):
-                            
+              
     def __init__(self, simulation_parameters_xml, 
-                 scale_factor, offset, transition_placement, refiling_rate, release_probability, offset_dyn, syn_weight, 
+                 scale_factor=0.33,
+                 offset=0.525,
+                 transition_placement=105,
+                 refiling_rate=0.063,
+                 release_probability=0.063,
+                 offset_dyn=0.01,
+                 syn_weight=2.78e-6, 
                  note="",note_dir="", print_mode=False, light_dt = 0.025, sim_dt = 0.025):
         if sim_dt!=0.025:
             raise Exception("Not implemented yet")
@@ -21,7 +27,6 @@ class SimulationParameters(object):
         self.sim_dt = sim_dt #<--those can maybe move the the xml?
         self.light_dt = light_dt #<--those can maybe move the the xml?
         
-
         # GA Optimization
         self.scale_factor = scale_factor
         self.offset       = offset
@@ -127,15 +132,17 @@ def center_and_scale_morphology (NEURON, neuron_object, x, y, z, d,logger):
     
     logger.info("Cell scaled by [{}, {}, {}]".format(x,y,z))
 
-def spatially_dependent_dynamic(signal, phase, refiling_rate, release_probability, offset_dyn, distance, max_distance, seed = 10, light_dt=0.025):
+def spatially_dependent_dynamic(signal, phase, refiling_rate, release_probability, 
+                                offset_dyn, distance, max_distance, seed = 10, light_dt=0.025):
 
-    return create_sp_times_per_synapse(signal, phase, refiling_rate, release_probability, offset_dyn, distance, max_distance, seed = seed, light_dt=light_dt)
+    return create_sp_times_per_synapse(signal, phase, refiling_rate, release_probability, 
+                                       offset_dyn, distance, max_distance, seed = seed, light_dt=light_dt)
 
 def create_sp_times_per_synapse(signal, phase, refiling_rate, release_probability, offset_dyn,  
                                 distance, max_distance, seed, light_dt=0.025):
     
-    
-    RRP_max = 70                        # readily releasable pool [number of vesicles]
+   
+    RRP_max = 70                                                      # readily releasable pool [number of vesicles]
     p = offset_dyn + release_probability * (distance / max_distance)  # probability of release of one vesicle given a full RRP
     if p > 1:
         p = 1
@@ -143,7 +150,6 @@ def create_sp_times_per_synapse(signal, phase, refiling_rate, release_probabilit
     if refiling_rate_n>refiling_rate:
         refiling_rate_n = refiling_rate
     refiling_rate = refiling_rate_n
-    # normalizing by distance. Assuming max distance is 135um (SAC)
 
     signal_mod = [0]
     RRP = RRP_max
@@ -154,9 +160,19 @@ def create_sp_times_per_synapse(signal, phase, refiling_rate, release_probabilit
     ref_events = 1*(rnd.uniform(0,1,len(prob))<prob)
     
     p = p/(1/light_dt) # the p is for a milisecond!
-    
+    scaling = 1
 
     for i, sig in enumerate(signal):
+        
+        # Handling gradual release incase the syimuli is not a binary True/False - Light/dark case      
+        if isinstance(sig, bool):
+            if sig > 0:
+                scaling = sig
+                sig = True
+            else:
+                sig = False
+                
+        
         if (((phase == 'on') & sig) | ((phase == 'off') & (not sig))):
             
             k = rnd.binomial(RRP, p)  # number of fused and wasted vesicles
@@ -170,7 +186,7 @@ def create_sp_times_per_synapse(signal, phase, refiling_rate, release_probabilit
             k = 0
             RRP = RRP_max ##
 
-        signal_mod.append(k)
+        signal_mod.append(k * scaling)
     
     # Here in signal_mod I have the number of released vasicales for dt (0.025)
     # I transformed this list to synaptic activation times - What were the times of each synaptic activation 
@@ -209,9 +225,13 @@ def layer2_parsing (element_tree, logger):
     
     logger.info("Visual stimulation: {} with parameters:\n tgt_population = {}; field = {} mm; frequancy = {} Hz; blocked_field = {} mm; center = ({},{}); delay = {}".format(root.get('type'), tgt_population, stimuli_field, frequancy, blocked_field, x0, y0, delay))
 
-    
-    return ({'stimuli_field': stimuli_field,'x0': x0, 'y0': y0, 'blocked_field':blocked_field, 
-             'tgt_population': tgt_population.split()}, 
+    if stimuli_to_call.__name__ == 'alternating_bar':
+        return ({'stimuli_field': stimuli_field,'x0': x0, 'y0': y0, 'blocked_field':blocked_field, 
+                 'tgt_population': tgt_population.split()}, 
+                 stimuli_to_call(field_x = 500, bar_size_x = 100, velocity = 2))
+    else:
+        return ({'stimuli_field': stimuli_field,'x0': x0, 'y0': y0, 'blocked_field':blocked_field,
+            'tgt_population': tgt_population.split()}, 
             stimuli_to_call(stimuli_field, frequancy, blocked_field, x0, y0, delay))
 
 def layer3_parsing (element_tree, logger):

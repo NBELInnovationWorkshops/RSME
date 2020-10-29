@@ -134,7 +134,7 @@ def drifting_bar (field_x = 500, bar_size_x = 100, velocity = 10, direction = 'R
 
     return is_activated   
   
-def alternating_bar (field_x = 500, bar_size_x = 100, velocity = 10):
+def alternating_bar (field_x = 500, bar_size_x = 100, velocity = 2):
     
     t_to_finish = (field_x + bar_size_x) / velocity
     

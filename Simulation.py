@@ -84,19 +84,12 @@ class Simulation(object):
         # Distributes channels , as well as defines sections' properties (Ra, diameter)
         define_sections(self.simulation, simulation_parameters.logger)
         
-        if synapse_dictionary_file is None:
-            self.synapse_dict = {'projections'  : define_projection_synapses (
-                                     self.simulation, simulation_parameters.logger),
-                                 'light'        : define_light_synpases      (
-                                     self.simulation, simulation_parameters.logger),
-                                 'intersynapses': define_inner_synapses      (
-                                     self.simulation, simulation_parameters.logger)
-            }
-        else:
-            self.synapse_dict = generate_synapse_dict_from_file(synapse_dictionary_file, self.simulation,
-                                                                simulation_parameters.logger)
-            self.synapse_dict['light'] = define_light_synpases(self.simulation, 
-                                                               simulation_parameters.logger)
+        self.synapse_dict = {'projections'  : define_projection_synapses (
+                                    self.simulation, simulation_parameters.logger),
+                                'light'        : define_light_synpases      (
+                                    self.simulation, simulation_parameters.logger),
+                                'intersynapses': define_inner_synapses      (
+                                    self.simulation, simulation_parameters.logger)}
 
         self.plotting_dict = initiate_plotting(self.simulation)
         

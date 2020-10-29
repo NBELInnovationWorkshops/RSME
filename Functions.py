@@ -31,7 +31,14 @@ def load_morphology(NEURON, simulation_dict, logger):
     for cell_type in simulation_dict['cells']:
         
         file_name = simulation_dict['cells'][cell_type]['morphology']['morphology_hoc_file']
-        morphology_adhoc_fix = getattr(SimParameters, simulation_dict['cells'][cell_type]['morphology']['morphology_fix_function'])
+
+        morphology_adhoc_fix_function = simulation_dict['cells'][cell_type]['morphology']['morphology_fix_function']
+        if morphology_adhoc_fix_function == "None":
+            morphology_adhoc_fix = None
+        else:
+            morphology_adhoc_fix = getattr(
+                SimParameters, simulation_dict['cells'][cell_type]['morphology']['morphology_fix_function'])
+        
         logger.info("Instanting from: {}".format(file_name))
         if simulation_dict['print_mode']:
             print('Loading morphology: {}'.format(file_name))
@@ -46,7 +53,8 @@ def load_morphology(NEURON, simulation_dict, logger):
             s = NEURON("cells[{}] = new {}()".format(cell-1, file_name.split(".")[0]))
 
             # Scale morphology - SPECIFIC adhock CORRECTION 
-            morphology_adhoc_fix(NEURON, NEURON.cells[int(cell)-1], 0.5, 0.5, 0, 0.5, logger)
+            if morphology_adhoc_fix is not None:
+                morphology_adhoc_fix(NEURON, NEURON.cells[int(cell)-1], 0.5, 0.5, 0, 0.5, logger)
 
             # Aligning cell to 0,0,0 coordinate. Network arrangement are handled below
             x_min, y_min = find_min_max_section(NEURON, NEURON.cells[int(cell)-1], logger)
@@ -63,6 +71,15 @@ def load_morphology(NEURON, simulation_dict, logger):
                 if ((location[0][0] != 0) | (location[1][0] != 0)):
                     shift_location(NEURON, 
                                    NEURON.cells[int(cell)-1], location[0][0], location[1][0], 0, logger)
+            
+    # Handling projections, assuming x_y intersection schematics
+    for projection in simulation_dict['projections']:
+        x_y_alignment = (simulation_dict['projections'][projection]['connectivity_pattern']
+                                ['x_y_intersection']['x_y_alignment'])
+        cell_type = str(projection.split()[1]) # Projection target
+        for cell in simulation_dict['cells'][cell_type]['instances']:
+            shift_location(NEURON, simulation_dict['cells'][cell_type]['instances'][cell]['NEURON object'],
+            x_y_alignment['x'], x_y_alignment['y'], 0, logger)
                 
     # using an external hoc file to manually define the number of segments of each section. 
     # the script sets nseg in each section to an odd value so that its segments are no longer than 
@@ -108,7 +125,7 @@ def shift_location(NEURON, neuron_object, x, y, z, logger):
 
     root = find_cell_root(neuron_object)
     for i in range(int(NEURON.n3d(sec=root))):
-       NEURON.pt3dchange(i,
+        NEURON.pt3dchange(i,
                NEURON.x3d(i, sec=root) + x,
                NEURON.y3d(i, sec=root) + y,
                NEURON.z3d(i, sec=root) + z,
@@ -157,7 +174,7 @@ def define_sections(simulation_dict, logger):
     for cell_type in simulation_dict['cells']:
         for cell in simulation_dict['cells'][cell_type]['instances']:
             
-            logger.info('Distributing channels in  cell {}, at layer {},'.format(cell, cell_type))
+            logger.info('Distributing channels in cell {}, at layer {},'.format(cell, cell_type))
 
             insert_channel(simulation_dict['cells'][cell_type]['biophysics']['spatial_distributions'], 
                            simulation_dict['cells'][cell_type]['instances'][cell]['section_dict'],
@@ -258,15 +275,7 @@ def define_projection_synapses(simulation_dict, logger):
             # Handling x_y_intersection connectiviy patter
             if connectivity_pattern == "x_y_intersection":
                 
-                x_y_alignment = (simulation_dict['projections'][projection]['connectivity_pattern']
-                                 ['x_y_intersection']['x_y_alignment'])
-                
-                for tgt_cell in relevant_segments_tgt:
-                                
-                    align_cell(NEURON, simulation_dict['cells'][tgt_layer]['instances'][tgt_cell]['NEURON object'],
-                               x_y_alignment['x'], x_y_alignment['y'], 0, logger) 
-                    
-                    original_location = simulation_dict['cells'][tgt_layer]['instances'][tgt_cell]['location']['x']
+                for tgt_cell in relevant_segments_tgt: 
                     
                     for tgt_sec in relevant_segments_tgt[tgt_cell]:
                         
@@ -352,16 +361,22 @@ def path_distance(x, sec, sections_dict):
 def insert_channel(channels_params_dict, sections_dict, logger):
     """ Distribute channels across the morphplogy according to to the ones listed in params.py. """
     
-    # channel type is defined in the pre-compiled .mod files. Each type is comprised of different channels, 
-    # which has to be distributed according to its own distribution function. Distribution functions are listed
+    # Channel type is defined in the pre-compiled .mod files. Each type is comprised of different properties, 
+    # which has to be defined according to its property distribution function. Distribution functions are listed
     # in the 'chan_prop_dict'.
     
     for channel_type in channels_params_dict:
 
         chan_prop_dict = channels_params_dict[channel_type]
         section_list = sections_dict['section_list']
+        
         logger.info('inserting channel: {}'.format(channel_type))
         
+        for key, value in chan_prop_dict.items():
+            logger.info('inserting channel: {}'.format(key))
+        
+        #import pdb; pdb.set_trace()
+      
         for sec in section_list:
 
             # Normalizing factors for channels distribution
@@ -371,12 +386,18 @@ def insert_channel(channels_params_dict, sections_dict, logger):
             # Define a channel type for insertion
             sec.insert(channel_type)
 
-            # Distribute channels
+            # Distribute channels properties
+            # For each process (designated in channel_type) set the parameters according to a lmbda function defined for it.
+            # 'key' is the property and value is the lambda function
             for key, value in chan_prop_dict.items():
+                
+                # Compute the property value at the beginning of the sec
                 taper_begin = value(begin_dist)
+                # Compute the property value at the end of the sec
                 taper_end   = value(end_dist)
                 dx = 1 / float(sec.nseg)
                 
+                # Set the property linearily across the section
                 for (seg, x) in zip(sec, np.arange(dx / 2, 1, dx)):
                     setattr(seg, key, (taper_end - taper_begin) * x + taper_begin)
 
@@ -397,8 +418,9 @@ def insert_projection_synapses(synapse_dict, simulation_dict, logger):
             syn.e = -75
             syn.factor = 0.0005
 
-            simulation_dict['pc'].source_var(src(0.5)._ref_v,    int(projection) * 1000 + i, sec = src)
-            simulation_dict['pc'].target_var(syn, syn._ref_vpre, int(projection) * 1000 + i, sec = tgt)
+            n = sum([int(i) for i in projection.split()]) # in value which represents the projection
+            simulation_dict['pc'].source_var(src(0.5)._ref_v,    n * 1000 + i + 10000000, sec = src)
+            simulation_dict['pc'].target_var(syn, syn._ref_vpre, n * 1000 + i + 10000000, sec = tgt)
 
             projection_synapses['syns'].append(syn)
 
@@ -421,7 +443,7 @@ def insert_inner_synapses(synapse_dict, simulation_dict, cell_type, logger):
         syn.interval = (1000 / 50) / 4 # Assuming 4 synapses between cells 
         syn.e = -75
         syn.factor = 0.0005
-
+ 
         simulation_dict['pc'].source_var(src(0.5)._ref_v,    int(cell_type) * 1000 + i, sec = src)
         simulation_dict['pc'].target_var(syn, syn._ref_vpre, int(cell_type) * 1000 + i, sec = tgt)
 
@@ -482,7 +504,6 @@ def insert_synapses(params_dict, syn_params_dict, sections_dict, logger, syn_loc
             if synape:
                 count += 1
                 
-                # Current clamp version. Updated to BcSyn (custom) synapses, changing its g
                 BC_syn = NEURON.Exp2Syn(sec(frac))
                 BC_syn.tau1 = 0.89
                 BC_syn.tau2 = 1.84
@@ -507,6 +528,7 @@ def generate_possible_stim_trains(simulation_dict, logger):
     
     for cell_type in simulation_dict['cells']:
         for cell in simulation_dict['cells'][cell_type]['instances']:
+            n = 0
             sections_dict = simulation_dict['cells'][cell_type]['instances'][cell]['section_dict'] 
             section_list = sections_dict['section_list']
             
@@ -530,7 +552,8 @@ def generate_possible_stim_trains(simulation_dict, logger):
                                                         'w': w,
                                                         'd': dist,
                                                         'stimulation':generate_stim_train(x, y, dist, simulation_dict)})
-            logger.info('Stimulation train was generated for cell {}'.format(cell))
+                    n = n + 1
+            logger.info('{} stimulation trains were generated for cell {}'.format(n, cell))
         logger.info('Stimulation train was generated for cell type {}'.format(cell_type))
     
     pickle.dump(possible_stimulation_trains, open( 'possible_stimulation_trains_{}_lightdt{}.p'.format(simulation_dict['XML_description'],simulation_dict['light_dt']), "wb" ), protocol=-1 )
@@ -609,8 +632,11 @@ def calculate_spike_times (synapse_dict, simulation_parameters, logger):
                 synapse_model = getattr(SimParameters, simulation_parameters['synapses']['light_synapse']['type'])
                 
                 signal_mod = synapse_model(signal, simulation_parameters['synapses']['light_synapse']['phase'], 
-                                           refiling_rate, release_probability, offset_dyn, dist, 135, #Assuming 135 is the max_distance. Should be caculated
-                                           seed = i + 10000 * cell + sum([ord(t) for t in cell_type]), light_dt=simulation_parameters['light_dt']) # Making sure each synapse on each cell in each layer has a different seed. 
+                                           refiling_rate, release_probability, offset_dyn, dist, 135, 
+                                           #Assuming 135 is the max_distance. Can be caculated
+                                           seed = i + 10000 * cell + sum([ord(t) for t in cell_type]),
+                                           light_dt=simulation_parameters['light_dt']) 
+                # Making sure each synapse on each cell in each layer has a different seed. 
 
                 stim_train[cell_type][cell][i] = signal_mod
             logger.info("Calculating stim_train for cell {} completed".format(cell))
@@ -828,17 +854,19 @@ def generate_synapse_dict_from_file(synapse_dictionary_file, simulation, logger)
 # *********************************************     
 def get_morphology_plot(plotting_dict, results_dir, soma_plot = False):
       
-    import matplotlib.patches as patches
+    import seaborn as sns
      
     for cell_type in plotting_dict:
     
         plt.figure(figsize=[12, 12])
-        plt.axis([0, 600, 0, 775])
+        
+        #plt.axis([0, 600, 0, 775]) # BOOK MODIFICATION
+        
         ax = plt.axes()
         
         # Plotting cells
         for cell in plotting_dict[cell_type]:
-
+            colors =sns.dark_palette("purple", len(plotting_dict[cell_type]))
             if soma_plot:
 
                 x = plotting_dict[cell_type][cell]['x'][0]
@@ -860,10 +888,10 @@ def get_morphology_plot(plotting_dict, results_dir, soma_plot = False):
             else:
                 x = plotting_dict[cell_type][cell]['x']
                 y = plotting_dict[cell_type][cell]['y']
-                plt.scatter(x, y, marker='.')
+                plt.scatter(x, y, marker='.', color = colors[cell-1])
                 x_soma = plotting_dict[cell_type][cell]['x'][0]
                 y_soma = plotting_dict[cell_type][cell]['y'][0]
-                plt.scatter(x_soma, y_soma, s=500, c = 'red', marker='.')
+                plt.scatter(x_soma, y_soma, s=200, c = 'black', marker='.')
       
         if soma_plot:
             plt.savefig(results_dir + 'morphology_plot_type_{}_soma.png'.format(cell_type), dpi=350)
@@ -871,8 +899,6 @@ def get_morphology_plot(plotting_dict, results_dir, soma_plot = False):
             plt.savefig(results_dir + 'morphology_plot_type_{}.png'.format(cell_type), dpi=350)
         
         plt.show()
-        # plt.gcf().clear()
-
 
 def get_directionality_plot(simulation_dict, plotting_dict, pref_direction, results_dir):
     
@@ -961,18 +987,17 @@ def initiate_plotting(simulation_dict):
     return plotting_dict
 
 def get_synapse_plot (syndict, plotting_dict, weight_plot, results_dir):
-    
+
     for cell_type in plotting_dict: 
     
         plt.figure(figsize=[12, 12])
-        plt.axis([0, 600, 0, 775])
-
+        #plt.axis([0, 600, 0, 775]) # BOOK MODIFICATION
         light_synapse_color = 'r'
 
         # Plotting cells
         for cell in plotting_dict[cell_type]:
             plt.scatter(plotting_dict[cell_type][cell]['x'], 
-                        plotting_dict[cell_type][cell]['y'], c='b', marker='.')
+                        plotting_dict[cell_type][cell]['y'], c='black', marker='.')
         
         # Plotting light synapses
         if cell_type in syndict['light']:
@@ -1070,16 +1095,7 @@ def plot_2d (params, simulation_dict,  plotting_dict, results_dir, t = -1):
                     if cell_type not in simulation_dict['stimuli_params']['tgt_population']:
                         continue  
                     
-                    import matplotlib.patches as patches
-                    ax.add_patch(
-                       patches.Rectangle(
-                           (simulation_dict['stimuli_params']['x0'], simulation_dict['stimuli_params']['y0']), 
-                            simulation_dict['stimuli_params']['stimuli_field'], 
-                            simulation_dict['stimuli_params']['stimuli_field'],
-                            color = 'r',
-                            alpha=0.1
-                       )
-                    )
+                    
                     ax.set_title('%d ms' %time)
                     
                 ax.cax.colorbar(im) 
@@ -1136,5 +1152,5 @@ def plot_2d (params, simulation_dict,  plotting_dict, results_dir, t = -1):
                         
                 ax.cax.colorbar(im)  
                 plt.savefig(results_dir + 'param_plot_cell_{}_type_{}.png'.format(cell, cell_type), dpi=350)
-                # plt.show()
+                plt.show()
                 plt.gcf().clear()
