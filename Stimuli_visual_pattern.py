@@ -151,13 +151,33 @@ def alternating_bar (field_x = 500, bar_size_x = 100, velocity = 2):
             return right_moving_bar (x, y, t % t_to_finish)
         
     return is_activated
+
+def noise (intensity = 0.5):
     
+    def is_activated (x, y, t):
         
+        if np.random.rand() < intensity:
+            return True
+        return False
+    
+    return is_activated
+        
+def noisy_alternating_bar  (field_x = 500, bar_size_x = 100, velocity = 2, intensity = 0.5):
+    
+    alternating_bar_stim = alternating_bar (field_x = field_x, bar_size_x = bar_size_x, velocity = velocity)
+    noise_stim = noise(intensity = intensity)
+    
+    def is_activated (x, y, t):
+    
+        return (alternating_bar_stim(x,y,t) or noise_stim(x,y,t))
+    
+    return is_activated
+     
 # *******************************************
 # ********** Evaluation method  *************
 # *******************************************
 
-def evaluate_stimuli_pattern (t,      stimuli,            field_x, field_y): 
+def evaluate_stimuli_pattern (t,      stimuli, field_x, field_y): 
                            # [mSec],  [function pointer], [um] 
 
     res = np.zeros((field_y, field_x))

@@ -235,8 +235,8 @@ class Simulation(object):
         pickle.dump(results, open(self.results_dir + "results_v_at_soma.p", "wb" ))
         
         return results
+       
         
-    
     def evaluate_stimulation_dynamics(self):
         
         t   = list(np.arange(0, self.simulation['simdur'], 0.025))

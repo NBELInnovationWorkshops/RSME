@@ -229,6 +229,10 @@ def layer2_parsing (element_tree, logger):
         return ({'stimuli_field': stimuli_field,'x0': x0, 'y0': y0, 'blocked_field':blocked_field, 
                  'tgt_population': tgt_population.split()}, 
                  stimuli_to_call(field_x = 500, bar_size_x = 100, velocity = 2))
+    if stimuli_to_call.__name__ == 'noisy_alternating_bar':
+        return ({'stimuli_field': stimuli_field,'x0': x0, 'y0': y0, 'blocked_field':blocked_field, 
+                 'tgt_population': tgt_population.split()}, 
+                 stimuli_to_call(field_x = 500, bar_size_x = 100, velocity = 2, intensity=0.01))
     else:
         return ({'stimuli_field': stimuli_field,'x0': x0, 'y0': y0, 'blocked_field':blocked_field,
             'tgt_population': tgt_population.split()}, 

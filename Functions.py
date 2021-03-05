@@ -240,7 +240,8 @@ def define_inner_synapses(simulation_dict, logger):
 
     # Connect inner synapses
     for cell_type in intersections:
-        intersections[cell_type]['synapses'] = insert_inner_synapses(intersections[cell_type], simulation_dict, cell_type, logger) 
+        intersections[cell_type]['synapses'] = insert_inner_synapses(intersections[cell_type], 
+                                                                     simulation_dict, cell_type, logger) 
     
     if simulation_dict['print_mode']:
         print ('Inner synapses were successfully inserted') 
@@ -319,6 +320,11 @@ def define_projection_synapses(simulation_dict, logger):
                                             # similarity in the opposite direction 
                                             similarity = 1 - spatial.distance.cosine(pref_dirction, direction)
 
+                                            # Testing randomized connectivity
+                                            
+                                            #if (random()<0.5):
+                                            #    continue
+                                             
                                             if ((-1 * similarity) < random()):
                                                 continue
 
@@ -443,6 +449,8 @@ def insert_inner_synapses(synapse_dict, simulation_dict, cell_type, logger):
         syn.interval = (1000 / 50) / 4 # Assuming 4 synapses between cells 
         syn.e = -75
         syn.factor = 0.0005
+        #syn.factor = 0.001
+        #syn.factor = 0 # check for non-inhabeted directionallity
  
         simulation_dict['pc'].source_var(src(0.5)._ref_v,    int(cell_type) * 1000 + i, sec = src)
         simulation_dict['pc'].target_var(syn, syn._ref_vpre, int(cell_type) * 1000 + i, sec = tgt)
@@ -1100,7 +1108,6 @@ def plot_2d (params, simulation_dict,  plotting_dict, results_dir, t = -1):
                     
                 ax.cax.colorbar(im) 
                 plt.savefig(results_dir + 'param_plot_{}_type_{}.png'.format(param_name, cell_type), dpi=350)
-                #plt.show()
                 plt.gcf().clear()
 
                 # Visualizing stimuli in respect to time series t
