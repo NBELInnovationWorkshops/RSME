@@ -15,6 +15,7 @@ class SimulationParameters(object):
                  release_probability=0.063,
                  offset_dyn=0.01,
                  syn_weight=2.78e-6, 
+                 kinetic_change_end=None,
                  note="",note_dir="", print_mode=False, light_dt = 0.025, sim_dt = 0.025):
         if sim_dt!=0.025:
             raise Exception("Not implemented yet")
@@ -35,6 +36,7 @@ class SimulationParameters(object):
         self.release_probability = release_probability
         self.offset_dyn = offset_dyn
         self.syn_weight = syn_weight
+        self.kinetic_change_end = kinetic_change_end
         # GA Optimization
         
         tree = ET.parse(simulation_parameters_xml)
@@ -51,6 +53,7 @@ class SimulationParameters(object):
         self.logger.info(f"release_probability: {release_probability}")
         self.logger.info(f"offset_dyn: {offset_dyn}")
         self.logger.info(f"syn_weight: {syn_weight}")    
+        self.logger.info(f"kinetic_change_end: {kinetic_change_end}")
         
         self.logger.info('Layer 1 parsing initiated')
         self.logger.info('Simulation {} has initiated. Simulation duration: {} msec'.format(self.description, self.simdur))

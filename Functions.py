@@ -604,6 +604,10 @@ def calculate_spike_times (synapse_dict, simulation_parameters, logger):
     refiling_rate = simulation_parameters['refiling_rate']
     release_probability = simulation_parameters['release_probability']
     offset_dyn = simulation_parameters['offset_dyn']
+    kinetic_change_end = simulation_parameters['kinetic_change_end']
+    if kinetic_change_end == None:
+        raise Exception("Not implemented yet!")
+
 
     stim_train = {}
     for cell_type in synapse_dict['light']:
@@ -640,8 +644,7 @@ def calculate_spike_times (synapse_dict, simulation_parameters, logger):
                 synapse_model = getattr(SimParameters, simulation_parameters['synapses']['light_synapse']['type'])
                 
                 signal_mod = synapse_model(signal, simulation_parameters['synapses']['light_synapse']['phase'], 
-                                           refiling_rate, release_probability, offset_dyn, dist, 135, 
-                                           #Assuming 135 is the max_distance. Can be caculated
+                                           refiling_rate, release_probability, offset_dyn, dist, kinetic_change_end, 
                                            seed = i + 10000 * cell + sum([ord(t) for t in cell_type]),
                                            light_dt=simulation_parameters['light_dt']) 
                 # Making sure each synapse on each cell in each layer has a different seed. 

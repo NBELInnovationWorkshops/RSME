@@ -43,7 +43,8 @@ class Simulation(object):
                            'refiling_rate'        : simulation_parameters.refiling_rate, 
                            'release_probability'  : simulation_parameters.release_probability,
                            'offset_dyn'           : simulation_parameters.offset_dyn,
-                           'syn_weight'           : simulation_parameters.syn_weight}
+                           'syn_weight'           : simulation_parameters.syn_weight,
+                           'kinetic_change_end'   : simulation_parameters.kinetic_change_end}
         
         for cell_type in simulation_parameters.network['populations']:
             self.simulation['cells'][cell_type] = {
